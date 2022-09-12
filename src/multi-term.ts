@@ -13,13 +13,16 @@ export class Term extends EventEmitter {
     public stdout = new stream.PassThrough();
     public stderr = new stream.PassThrough();
 
+    private _stdout_clear = false;
+    private _stderr_clear = false;
+
     constructor(public name = `Term ${term_count++}`, public size = 100) {
         super();
 
         this.stdout.on("data", (data) => {
             const parsed = Anser.ansiToJson(data.toString(), { json: true });
             for (const chunk of parsed) {
-                if (chunk.clearLine) {
+                if (this._stdout_clear) {
                     if (this._stdout.length > 0) {
                         this._stdout.pop();
                     }
@@ -27,6 +30,12 @@ export class Term extends EventEmitter {
                     if (this._mixed.length > 0) {
                         this._mixed.pop();
                     }
+                }
+
+                if (chunk.clearLine) {
+                    this._stdout_clear = true;
+                } else {
+                    this._stdout_clear = false;
                 }
 
                 const content = chunk.content.split(/[\r\n]+/g);
@@ -48,7 +57,7 @@ export class Term extends EventEmitter {
         this.stderr.on("data", (data) => {
             const parsed = Anser.ansiToJson(data.toString(), { json: true });
             for (const chunk of parsed) {
-                if (chunk.clearLine) {
+                if (this._stderr_clear) {
                     if (this._stderr.length > 0) {
                         this._stderr.pop();
                     }
@@ -58,7 +67,13 @@ export class Term extends EventEmitter {
                     }
                 }
 
-                const content = chunk.content.split(/[\r\n]+/g);
+                if (chunk.clearLine) {
+                    this._stderr_clear = true;
+                } else {
+                    this._stderr_clear = false;
+                }
+
+                const content = chunk.content.split(/[\r\n]+\s*/g);
                 this._stderr.push(...content);
                 this._mixed.push(...content);
 
@@ -128,6 +143,9 @@ export class MultiTerm extends EventEmitter {
         if (idx !== -1) {
             const t = this._terms.splice(idx, 1);
             t[0].removeAllListeners();
+            if (this._terms.length === 0) {
+                this.emit("clear");
+            }
             return t[0];
         }
 
@@ -136,34 +154,57 @@ export class MultiTerm extends EventEmitter {
 
     public get out(): string {
         return this._terms
-            .map((term) => format_output(term.name, term._stdout.slice(-this.height), this.width))
+            .map((term) =>
+                format_output(
+                    term.name,
+                    term._stdout.filter((line) => line.trim().length > 0).slice(-this.height),
+                    this.width,
+                ),
+            )
             .join("\n");
     }
 
     public get err(): string {
         return this._terms
-            .map((term) => format_output(term.name, term._stderr.slice(-this.height), this.width))
+            .map((term) =>
+                format_output(
+                    term.name,
+                    term._stderr.filter((line) => line.trim().length > 0).slice(-this.height),
+                    this.width,
+                ),
+            )
             .join("\n");
     }
 
     public get mixed(): string {
         return this._terms
-            .map((term) => format_output(term.name, term._mixed.slice(-this.height), this.width))
+            .map((term) =>
+                format_output(
+                    term.name,
+                    term._mixed.filter((line) => line.trim().length > 0).slice(-this.height),
+                    this.width,
+                ),
+            )
             .join("\n");
     }
 }
 
 export function format_output(name: string, contents: string[], width: number): string {
     let output = chalk.magentaBright(`· ${name}`) + "\n";
+
     if (contents.length > 0) {
         if (contents[contents.length - 1].trim() === "") {
             contents.pop();
         }
 
         for (let i = 0; i < contents.length - 1; i++) {
+            if (contents[i].trim().length === 0) {
+                continue;
+            }
             output += `${chalk.magentaBright("│")} ${contents[i].slice(0, width)}\n`;
         }
         output += `${chalk.magentaBright("└")} ${contents[contents.length - 1].slice(0, width)}`;
     }
+
     return output;
 }
