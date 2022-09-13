@@ -1,6 +1,6 @@
 {
     "name": "multi-term",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Show outputs of parallel running child processes without messing up anything.",
     "keywords": [],
     "author": "JacobLinCool <jacoblincool@gmail.com> (https://github.com/JacobLinCool)",
