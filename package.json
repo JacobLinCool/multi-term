@@ -21,7 +21,8 @@
     },
     "dependencies": {
         "anser": "^2.1.1",
-        "chalk": "^4.0.0"
+        "chalk": "^4.0.0",
+        "cli-truncate": "^2.1.0"
     },
     "devDependencies": {
         "@types/jest": "^28.1.8",

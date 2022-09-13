@@ -2,6 +2,7 @@ import stream from "node:stream";
 import EventEmitter from "node:events";
 import Anser from "anser";
 import chalk from "chalk";
+import truncate from "cli-truncate";
 
 let term_count = 0;
 
@@ -201,9 +202,9 @@ export function format_output(name: string, contents: string[], width: number): 
             if (contents[i].trim().length === 0) {
                 continue;
             }
-            output += `${chalk.magentaBright("│")} ${contents[i].slice(0, width)}\n`;
+            output += `${chalk.magentaBright("│")} ${truncate(contents[i], width)}\n`;
         }
-        output += `${chalk.magentaBright("└")} ${contents[contents.length - 1].slice(0, width)}`;
+        output += `${chalk.magentaBright("└")} ${truncate(contents[contents.length - 1], width)}`;
     }
 
     return output;
